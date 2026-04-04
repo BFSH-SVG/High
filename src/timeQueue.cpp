@@ -97,7 +97,7 @@ static struct timespec howmanyTimeFromNow(TimeStamp when) {
     //用结构体tv来接收s和ns
     struct timespec tv;
     tv.tv_sec = static_cast<time_t>(microseconds / TimeStamp::kMicroSecondsPerSecond);
-    tv.tv_nsec = static_cast<long> ((microseconds %TimeStamp::kMicroSecondsPerSecond)/1000);
+    tv.tv_nsec = static_cast<long> ((microseconds %TimeStamp::kMicroSecondsPerSecond)*1000);
     return tv;
 }
 //设置闹钟时间，多久返回

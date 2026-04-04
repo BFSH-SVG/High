@@ -12,7 +12,7 @@ namespace muduowebserv {
         TimeQueue(EventLoop* loop);
         //添加定时器，返回定时器ID
         int64_t addTimer(Timer::TimeCallback callback,TimeStamp when,double interval);
-        //删除定时器
+        //取消】定时器
         void cancelTimer(int64_t timeId); 
 
         //析构，删除所有定时器

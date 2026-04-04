@@ -61,8 +61,9 @@ namespace muduowebserv {
         //发送信息
         void send(const std::string& message) {
             outputBuffer_.append(message.c_str(),message.size());
-            int saveError = 0;
-            outputBuffer_.writeToFd(sockfd_,&saveError);
+            if(!outputBuffer_.writeableBytes()) {
+               flushputBuffer();
+            }
         }
 
         ~TcpConnection() {
@@ -100,7 +101,7 @@ namespace muduowebserv {
             }
         }
         void handleWrite() {
-            std::cout<<"handleWrite"<<std::endl;
+            flushputBuffer();
         }
         void handleRead() {
             ssize_t n=inputBuffer_.readFromFd(sockfd_);
@@ -114,6 +115,43 @@ namespace muduowebserv {
                 handleError();
             }
         }
+        //即时刷新缓冲区，设置可写事件
+        void flushputBuffer() {
+            while(outputBuffer_.readableBytes()>0) {
+                int saveError = 0;
+                int n = outputBuffer_.writeToFd(sockfd_,&saveError);
+                if(n>0) continue; 
+                else if(n<0) {
+                    if(errno==EWOULDBLOCK||errno==EAGAIN) {
+                        break;
+                    }
+                    handleError();
+                    return;  //处理错误，返回
+                }else {
+                    //n==0 对方关闭
+                    handleClose();
+                    return;
+                }
+            }
+            if(outputBuffer_.readableBytes()>0) {
+                if(!channel_->isWriting()) {
+                    channel_->enableWrite();
+                    loop_->updateChannel(channel_.get());
+                }
+            }else {
+                if(channel_->isWriting()) {
+                    channel_->disableWriting();
+                    loop_->updateChannel(channel_.get());
+                }
+            }
+        }
+
+
+
+
+
+
+
     };
 
 }   
