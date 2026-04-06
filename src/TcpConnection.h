@@ -61,9 +61,7 @@ namespace muduowebserv {
         //发送信息
         void send(const std::string& message) {
             outputBuffer_.append(message.c_str(),message.size());
-            if(!outputBuffer_.writeableBytes()) {
-               flushputBuffer();
-            }
+            flushputBuffer();
         }
 
         ~TcpConnection() {
@@ -122,14 +120,14 @@ namespace muduowebserv {
                 int n = outputBuffer_.writeToFd(sockfd_,&saveError);
                 if(n>0) continue; 
                 else if(n<0) {
-                    if(errno==EWOULDBLOCK||errno==EAGAIN) {
+                    if(saveError==EWOULDBLOCK||saveError==EAGAIN) {
                         break;
                     }
                     handleError();
                     return;  //处理错误，返回
                 }else {
-                    //n==0 对方关闭
-                    handleClose();
+                    //n==0 异常
+                    handleError();
                     return;
                 }
             }
@@ -145,13 +143,6 @@ namespace muduowebserv {
                 }
             }
         }
-
-
-
-
-
-
-
     };
 
 }   
