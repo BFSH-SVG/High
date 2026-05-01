@@ -10,6 +10,7 @@
 #include "ThreadPool.h"
 #include <chrono>   //用于时间测量，时间库
 #include <atomic>  //原子操作库
+#include "db/SimpleDB.h"
 using namespace muduowebserv;
 // int main() {
 //     // 测试 LogStream
@@ -60,11 +61,15 @@ int main() {
 
     //运行事件循环s
     //loop.loop();
+    //打开数据库
+    SimpleDB::open("myserver.db");
+    SimpleDB::execute("CREATE TABLE IF NOT EXISTS my_test(id INTEGER,name TEXT);");  //数据库自动建表
     EventLoop loop;
     HttpServer server(&loop,8080,"textserver");
     server.start();
     std::cout<<"Http Server is running on port 8080"<<std::endl;
     loop.loop();
+    //只关闭一次 SimpleDB::close();
     //线程池测试
     muduowebserv::ThreadPool p(8); 
     // p.enqueue([]{

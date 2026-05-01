@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/server.dir/src/buffer.cpp.o CMakeFiles/server.dir/src/channel.cpp.o CMakeFiles/server.dir/src/main.cpp.o -o server 

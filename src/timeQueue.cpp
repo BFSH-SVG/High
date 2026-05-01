@@ -10,7 +10,7 @@
 namespace muduowebserv {
 //构造函数
 
-
+static void resetTimefd(int timefd,TimeStamp expiration); //静态函数声明
 static int createTimerfd() {
     int timerfd = ::timerfd_create(CLOCK_MONOTONIC,TFD_NONBLOCK | TFD_CLOEXEC);
     if(timerfd < 0) {

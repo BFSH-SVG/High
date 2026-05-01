@@ -40,6 +40,7 @@ namespace muduowebserv {
             if(revents_ & EPOLLHUP) {  //¹Ø±Õ
                 if(closeCallback_) {
                     closeCallback_();
+                    return;  //ÍË³ö
                 }
             }
             if(revents_ & EPOLLIN) {

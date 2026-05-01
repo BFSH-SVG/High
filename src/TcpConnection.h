@@ -11,6 +11,10 @@
 #include <err.h> //perror
 #include "buffer.h"
 namespace muduowebserv {
+    enum ConnectionState {
+        kConnected,
+        kDisconnected
+    };
     class TcpConnection;
     using TcpConnectionPtr = std::shared_ptr<TcpConnection>;
     using ConnectionCallback = std::function<void(const TcpConnectionPtr&)>;
@@ -60,8 +64,21 @@ namespace muduowebserv {
         }
         //发送信息
         void send(const std::string& message) {
-            outputBuffer_.append(message.c_str(),message.size());
-            flushputBuffer();
+            if(state_== kDisconnected) {
+                return;
+            }
+            if(loop_->isInLoopThread()) {
+                outputBuffer_.append(message.c_str(),message.size());
+                flushputBuffer();
+            }else {
+                    loop_->runInloop([self=shared_from_this(),message]() {
+                    //判断是否是连接状态再继续,io线程可能中途关闭连接
+                    if(self->state_ == kConnected) {
+                        self->outputBuffer_.append(message.c_str(),message.size());
+                        self->flushputBuffer();
+                    }
+                    });
+            }
         }
 
         ~TcpConnection() {
@@ -79,7 +96,7 @@ namespace muduowebserv {
         ConnectionCallback connectionCallback_;  //连接建立，或者断开连接
         MessageCallback messageCallback_; //消息回调
         CloseCallback closeCallback_;  //连接关闭回调
-
+        std::atomic<ConnectionState> state_=kConnected;  //连接状态
         //处理四种回调
         void handleError() {
             int optval;
@@ -91,7 +108,11 @@ namespace muduowebserv {
             }
         }
         void handleClose() {
+            if(state_==kDisconnected) {
+                return;
+            }
             std::cout<<"handleClose["<<name_<<"]"<<"  closed"<<std::endl;
+            state_ = kDisconnected;  //改成关闭状态
             channel_->disableAll();
             loop_->updateChannel(channel_.get());
             if(closeCallback_) {

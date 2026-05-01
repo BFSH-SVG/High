@@ -64,7 +64,7 @@ namespace muduowebserv {
             conn->connectEstablished(); //建立连接
         }
         void deleteConnection(const TcpConnectionPtr& conn) {
-            std::cout<<"deleteConnection"<< conn->name()<<std::endl;
+            std::cout<<"deleteConnection:   " <<conn->name()<<std::endl;
             connections_.erase(conn->name());
         }
     };

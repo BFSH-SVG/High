@@ -1,3 +1,0 @@
-/mnt/d/High Performance concurrent web server base Reactor patter/build/CMakeFiles/server.dir
-/mnt/d/High Performance concurrent web server base Reactor patter/build/CMakeFiles/edit_cache.dir
-/mnt/d/High Performance concurrent web server base Reactor patter/build/CMakeFiles/rebuild_cache.dir

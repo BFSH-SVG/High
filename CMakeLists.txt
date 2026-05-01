@@ -7,7 +7,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)  # 强制要求编译器支持c++17
 include_directories(${CMAKE_SOURCE_DIR})
 
 # 递归搜索源文件
-file(GLOB_RECURSE SOURCES "src/*.cpp")
+file(GLOB_RECURSE SOURCES "src/*.cpp" "Log/*.cpp")
 
 # 生成可执行文件
 add_executable(server ${SOURCES})
+#链接sqlite3
+target_link_libraries(server PRIVATE sqlite3)

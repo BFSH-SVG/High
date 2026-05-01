@@ -50,6 +50,27 @@ namespace muduowebserv{
             append(buf,strlen(buf));
             return *this;
         }
+        //重载std::string
+        LogStream& operator<<(const std::string& data) {
+            append(data.c_str(),data.size());
+            return *this;
+        }
+        //重载size_t
+        LogStream& operator<<(size_t data) {
+            char buf[32];
+            snprintf(buf,sizeof(buf),"%zu",data);
+            append(buf,strlen(buf));
+            return *this;
+        }
+
+
+
+
+
+
+
+
+
     private:
         char buffer_[kBufferSize];  
         int cur_pos_;  //当前位置

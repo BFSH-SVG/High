@@ -8,10 +8,16 @@
 #include <sys/eventfd.h>
 #include <unistd.h>  //close
 #include "timeQueue.h"
+#include <thread>
 namespace muduowebserv{
     class EventLoop{
     public:
-        EventLoop():looping_(false),quit_(false),timeQueue_(std::make_unique<TimeQueue>(this)){
+        EventLoop()
+        : looping_(false),
+        quit_(false),
+        timeQueue_(std::make_unique<TimeQueue>(this)),
+        threadId_(std::this_thread::get_id())
+        {
             wakeupFd_=eventfd(0,EFD_NONBLOCK | EFD_CLOEXEC);
             wakeupChannel_=std::make_unique<Channel>(wakeupFd_);
             wakeupChannel_->setReadCallback([this](){
@@ -19,9 +25,7 @@ namespace muduowebserv{
             });
             wakeupChannel_->enableReading();
             epoll_.updateChannel(wakeupChannel_.get());
-
-        };
-
+        }
         //启动循环事件
         void loop() {
             looping_ = true;
@@ -55,18 +59,26 @@ namespace muduowebserv{
         bool isLooping() {
             return looping_;
         }  
+        //是否是io线程
+        bool isInLoopThread() const {
+            return threadId_ == std::this_thread::get_id();
+        }
         //更新channel
         void updateChannel(Channel* channel) {
             epoll_.updateChannel(channel);
         }
         //返回待处理函数队列
         void runInloop(const std::function<void()>&functor) {
-            {
+            if(isInLoopThread()) {
+                functor();
+            }else {
+                {
                 std::lock_guard<std::mutex> lock(mutex_);
                 pendingFunctors_.push_back(functor);
-            }
+                }
             //关键，开始唤醒
             wakeup();   //pending添加任务，唤醒epoll
+            }
         }
         //在指定时间执行定时器
         int64_t runaction(Timer::TimeCallback timecallback,TimeStamp when) {
@@ -95,6 +107,7 @@ namespace muduowebserv{
         int wakeupFd_;  //唤醒fd，用于唤醒
         std::unique_ptr<Channel> wakeupChannel_;  //封装eventfd
         std::unique_ptr<TimeQueue> timeQueue_; //定时器队列
+        std::thread::id threadId_;   //线程id，记录创建线程的线程id
         //唤醒事件
         void wakeup() {
             uint64_t one=1;
