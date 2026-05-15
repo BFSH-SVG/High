@@ -62,15 +62,6 @@ namespace muduowebserv{
             append(buf,strlen(buf));
             return *this;
         }
-
-
-
-
-
-
-
-
-
     private:
         char buffer_[kBufferSize];  
         int cur_pos_;  //µ±«∞Œª÷√

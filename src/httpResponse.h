@@ -1,6 +1,9 @@
 #pragma once
 #include <string>
 #include <map>
+#include <fcntl.h>   //open()
+#include <sys/stat.h>   //fstat
+#include <sys/sendfile.h>   //sendfile
 namespace muduowebserv {
     //添加状态码
     enum HttpStatusCode {
@@ -36,6 +39,12 @@ namespace muduowebserv {
         const std::string& getStatusMessage() const {
             return statusMessage_;
         }
+        void setSrcFile(int fd,size_t size) {
+            srcFd_ = fd;     //文件描述符
+            fileSize_ = size;    
+        }
+        int getSrcFd() const {return srcFd_;}
+        size_t getFileSize() const {return fileSize_;}
         //添加头部
         void addHeader(const std::string& key,const std::string&value) {
             headers_[key] = value;
@@ -59,11 +68,23 @@ namespace muduowebserv {
             response+=body_;
             return response;
         }
+        //提取headr，用于ssendfile
+        std::string toHeaderString() const {
+            std::string response;
+            response += "HTTP/1.1 "+std::to_string(statusCode_)+" "+statusMessage_ +"\r\n";
+            for(auto head:headers_) {
+                response +=head.first + ": " + head.second+"\r\n";
+            }
+            response += "\r\n";
+            return response;
+       }
     private:
         HttpStatusCode statusCode_;    //状态码
         std::string statusMessage_;  //状态信息
         std::map<std::string,std::string>headers_;  //存储请求头
         std::string body_;  //内容
+        int srcFd_ = -1;   //零拷贝文件描述符,-1代表不用sendfile
+        size_t fileSize_ = 0; //文件大小
     };
 }
 

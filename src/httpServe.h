@@ -87,24 +87,44 @@ namespace muduowebserv {
                     }else {
                         //读取内容
                         std::string filename = "./www"+path;
-                        std::string content = readFile(filename);
-                        if(!content.empty()) {
-                            response.setStatusCode(k200OK);
+                        // std::string content = readFile(filename);
+                        // if(!content.empty()) {
+                        //     response.setStatusCode(k200OK);
+                        //     response.addHeader("Content-Type",getContentType(path));
+                        //     response.setBody(content);
+                        // } else {
+                        //     response.setStatusCode(k404notFound);
+                        //     response.setBody("404 Not Found");
+                        // }
+                        //打开文件，获取文件描述符
+                        int fileFd = ::open(filename.c_str(),O_RDONLY);
+                        if(fileFd >= 0 ) {
+                            struct stat fileStat;  //文件信息结构体
+                            ::fstat(fileFd,&fileStat);  //获取文件信息
                             response.addHeader("Content-Type",getContentType(path));
-                            response.setBody(content);
-                        } else {
-                            response.setStatusCode(k404notFound);
-                            response.setBody("404 Not Found");
+                            response.addHeader("Content-Length",std::to_string(fileStat.st_size));
+                            //用sendfile发送
+                            response.setSrcFile(fileFd,fileStat.st_size);
+                        }else {
+                            response.setBody("404 notFound");
                         }
                     }
                 }
-                //构造成字符串，并返回给用户
-                std::string responseString=response.toString();
-                LOG_INFO<<request.getMethod()<<" "<<path<<" "<<responseString.size();
-               //解析完调用loop方法，将响应发送到pedingqueue中
-                loop_->runInloop([conn,responseString](){
+                if(response.getSrcFd()!=-1) {
+                    std::string headerStr=response.toHeaderString();
+                    int fileFd = response.getSrcFd();
+                    size_t fileSize = response.getFileSize();
+                    LOG_INFO<<request.getMethod()<<" "<<path<<" "<<"sendfile size:"<<fileSize;
+                    loop_->runInloop([conn,headerStr,fileFd,fileSize](){
+                        conn->send(headerStr);  //第一步发送headerStr
+                        conn->sendFile(fileFd,fileSize);
+                    });
+                }else {
+                    std::string responseString = response.toString();
+                    LOG_INFO<<request.getMethod()<<" "<<path<<" "<<responseString.size();
                     conn->send(responseString);
-                });    
+                }   
+                 
             }  else {
                 //解析失败
                 HttpResponse response;

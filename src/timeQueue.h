@@ -20,10 +20,10 @@ namespace muduowebserv {
     private:
         using Entry = std::pair<TimeStamp,Timer*>;  //一对，时间戳和定时器指针
         using TimerList = std::set<Entry>;  //定时器，按照时间排序
+        int timerFd_;    //定时器文件描述符，与epoll集成
         std::unique_ptr<Channel> timerChannel_;  //定时器通道
         EventLoop* loop_;
         TimerList timerlist_;   //定时器列表
-        int timerFd_;    //定时器文件描述符，与epoll集成
 
         //私有方法，获取所有已到期的定时器
         std::vector<Entry> getExpired(TimeStamp now);
