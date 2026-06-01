@@ -77,6 +77,7 @@ void TimeQueue::cancelTimer(int64_t timeId) {
             return;
         }
     }
+    std::cout << "cancel timer FAILED: id=" << timeId << " not found!" << std::endl;
 }
 //¶ÁÈ¡timefd£¬Çå³ý´¥·¢×´Ì¬
 static void readTimefd(int timefd) {

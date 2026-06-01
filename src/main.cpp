@@ -1,5 +1,6 @@
 #include "Log/LogStream.h"
 #include "Log/LogLevel.h"
+#include "Log/Logger.h"
 #include "eventLoop.h"
 #include "channel.h"
 #include <iostream>
@@ -11,6 +12,8 @@
 #include <chrono>   //用于时间测量，时间库
 #include <atomic>  //原子操作库
 #include "db/SimpleDB.h"
+#include "asyncLogging.h"
+#include <signal.h>   //信号库
 using namespace muduowebserv;
 // int main() {
 //     // 测试 LogStream
@@ -25,6 +28,14 @@ using namespace muduowebserv;
 
 //     return 0;
 // }
+//信号函数
+EventLoop* g_loop = nullptr;
+void signalHandler(int sig) {
+    std::cout<<"receive signal:"<<sig<<std::endl;
+    if(g_loop) {
+        g_loop->quit();
+    }
+}
 int main() {
     // muduowebserv::EventLoop loop;
     // muduowebserv::Channel channel(0);
@@ -62,16 +73,25 @@ int main() {
     //运行事件循环s
     //loop.loop();
     //打开数据库
+    //全局指针和信号处理函数
+   
     SimpleDB::open("myserver.db");
-    SimpleDB::execute("CREATE TABLE IF NOT EXISTS my_test(id INTEGER,name TEXT);");  //数据库自动建表
+    SimpleDB::execute("CREATE TABLE IF NOT EXISTS my_test(id INTEGER,name TEXT);");
+    //数据库自动建表
+    AsyncLogging::instance().start();
     EventLoop loop;
+    g_loop = &loop;
+    signal(SIGTERM,signalHandler);
     HttpServer server(&loop,8080,"textserver");
     server.start();
     std::cout<<"Http Server is running on port 8080"<<std::endl;
+    LOG_INFO<<"Http Server is running on port 8080";
     loop.loop();
-    //只关闭一次 SimpleDB::close();
+    AsyncLogging::instance().stop();
+    //只关闭一次
+    SimpleDB::close();
     //线程池测试
-    muduowebserv::ThreadPool p(8); 
+    //muduowebserv::ThreadPool p(8); 
     // p.enqueue([]{
     //     std::cout<<"task 1 is running"<<std::endl;
     // });

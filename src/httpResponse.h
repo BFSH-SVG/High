@@ -23,7 +23,14 @@ namespace muduowebserv {
                 default: return "Unknown";
             }
         } 
-        HttpResponse():statusCode_(k200OK) {
+        HttpResponse():statusCode_(k200OK),srcFd_(-1),fileSize_(0) {
+        }
+
+        //析构
+        ~HttpResponse() {
+            if(srcFd_ != -1) {
+                ::close(srcFd_);
+            }
         }
         //设置状态码
         void setStatusCode(HttpStatusCode status) {
@@ -53,6 +60,10 @@ namespace muduowebserv {
         void setBody(const std::string& body){
             body_ = body;
         }
+        //设置长连接
+        void setKeepAlive(bool on) {
+            keepAlive_ = on;
+        }
         //转成字符串
         std::string toString() const {
             //提取状态行
@@ -63,6 +74,12 @@ namespace muduowebserv {
                 response+=header.first+": "+header.second+"\r\n";
             }
             response+="Content-Length: "+std::to_string(body_.size())+"\r\n";
+            //判断是否增加长连接回复
+            if(keepAlive_) {
+                response += "Connection: keep-alive\r\n";
+            }else {
+                response += "Connection: close\r\n";
+            }
             response+="\r\n";
             //提取内容
             response+=body_;
@@ -85,6 +102,7 @@ namespace muduowebserv {
         std::string body_;  //内容
         int srcFd_ = -1;   //零拷贝文件描述符,-1代表不用sendfile
         size_t fileSize_ = 0; //文件大小
+        bool keepAlive_ = true;   //默认保持长连接
     };
 }
 

@@ -32,6 +32,10 @@ namespace muduowebserv {
      void retrieve(size_t len) {
         readIndex_ += len;
      }
+     //回退读指针
+     void unretrieve(size_t len) {
+        readIndex_ -= len;
+     }
      //取出所有数据并转化成string
      std::string retrieveAllAsString(size_t len) {
         const char* startRead = peek();
@@ -49,11 +53,9 @@ namespace muduowebserv {
      void append(const char* data,size_t len) {
         //先确保写空间够
         ensureWriteableBytes(len);
-        for(size_t i=0;i<len;i++) {
-            buffer_[writeIndex_] = data[i];
-            writeIndex_++;
-        }
-
+        //memcpy速度更快
+        memcpy(&buffer_[writeIndex_],data,len);
+        writeIndex_ += len;
      }
      //从socketfd里面读取数据到缓冲区
      ssize_t readFromFd(int fd) {

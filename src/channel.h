@@ -40,8 +40,8 @@ namespace muduowebserv {
             if(revents_ & EPOLLHUP) {  //关闭
                 if(closeCallback_) {
                     closeCallback_();
-                    return;  //退出
                 }
+                return;   //无论是否有关闭回调，都退出
             }
             if(revents_ & EPOLLIN) {
                 if(readCallback_) {

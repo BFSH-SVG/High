@@ -46,7 +46,11 @@ namespace muduowebserv {
         }
         //epoll_wait 阻塞等待，将有事件的fd返回
         std::vector<Channel*> poll() {  //接收所有有事件的channel
-            int n = epoll_wait(epfd_,events_.data(),kMaxEvents,-1);
+            int n=0;
+            do {
+                n = epoll_wait(epfd_,&events_[0],kMaxEvents,-1);
+            }while(n<0 && errno == EINTR);
+            
             std::vector<Channel*> activeChannels; //活跃数组，返回的数组
             for(int i=0;i<n;i++) {
                 Channel* channel = static_cast<Channel*>(events_[i].data.ptr);

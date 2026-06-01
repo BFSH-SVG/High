@@ -41,6 +41,7 @@ namespace muduowebserv {
                 //std::this_thread::sleep_for(std::chrono::milliseconds(20));
                 //开始响应
                 HttpResponse response;
+                response.setKeepAlive(request.keepAlive());
                 //获取路径，实现路由
                 std::string path=request.getPath();
                 if(path == "/") {
@@ -72,8 +73,8 @@ namespace muduowebserv {
                         if(i!=results.size()-1) {
                             json += ",";
                         }
-                        json += "]";
                     }
+                    json += "]";
                     //
                     //设置响应
                     response.setStatusCode(k200OK);
@@ -110,21 +111,35 @@ namespace muduowebserv {
                         }
                     }
                 }
-                if(response.getSrcFd()!=-1) {
+                if(response.getSrcFd()!=-1) {  //sendfile发送
                     std::string headerStr=response.toHeaderString();
                     int fileFd = response.getSrcFd();
                     size_t fileSize = response.getFileSize();
+                    response.setSrcFile(-1,0);  //转移所有权，交给sendfile来关闭fd
                     LOG_INFO<<request.getMethod()<<" "<<path<<" "<<"sendfile size:"<<fileSize;
-                    loop_->runInloop([conn,headerStr,fileFd,fileSize](){
+                    bool keepAlive  = request.keepAlive();
+                    loop_->runInloop([conn,headerStr,fileFd,fileSize,keepAlive](){
                         conn->send(headerStr);  //第一步发送headerStr
                         conn->sendFile(fileFd,fileSize);
+                        if(!keepAlive) {
+                            conn->shutdown();
+                        }else {
+                            conn->setKeepAliveTimeOut(30.0);
+                        }
                     });
                 }else {
+                    bool keepAlive  = request.keepAlive();
                     std::string responseString = response.toString();
                     LOG_INFO<<request.getMethod()<<" "<<path<<" "<<responseString.size();
-                    conn->send(responseString);
-                }   
-                 
+                    loop_->runInloop([conn,responseString,keepAlive]{
+                        conn->send(responseString);
+                        if(!keepAlive) {
+                            conn->shutdown();
+                        }else {
+                            conn->setKeepAliveTimeOut(30.0);
+                        }
+                    });
+                }      
             }  else {
                 //解析失败
                 HttpResponse response;
@@ -132,8 +147,15 @@ namespace muduowebserv {
                 response.addHeader("Content-Type","text/plain");
                 response.setBody("bad request");
                 std::string responseString=response.toString();
-                loop_->runInloop([conn,responseString](){
+                bool keepAlive  = request.keepAlive();
+                loop_->runInloop([conn,responseString,keepAlive](){
                     conn->send(responseString);
+                    //判断如果不是长连接，就关闭连接
+                    if(!keepAlive) {
+                        conn->shutdown();    
+                    }else {
+                        conn->setKeepAliveTimeOut(30.0);
+                    }
                 });
             }
         });       

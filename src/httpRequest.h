@@ -2,6 +2,8 @@
 #include <string>
 #include <map>
 #include "buffer.h"
+#include <algorithm>
+#include <cctype>
 namespace muduowebserv {
 
     class HttpRequest {
@@ -34,6 +36,18 @@ namespace muduowebserv {
         const std::string& getVersion() const {
             return version_;
         }
+        //是否支持长连接
+        bool keepAlive() const {
+            std::string conn = getHeader("Connection");
+            if(conn.empty()) {
+                return version_ == "HTTP/1.1";
+            }
+            std::string connLower = conn;   //转化成小写在进行判断
+            std::transform(connLower.begin(),connLower.end(),connLower.begin(),[](unsigned char c){return
+                 std::tolower(c);});
+            return connLower == "keep-alive";
+
+        }
         //设置请求头
         void setHeader(const std::string&key,const std::string&value){
             headers_[key] = value;
@@ -48,6 +62,7 @@ namespace muduowebserv {
         }
         //解析
         bool parse(Buffer*buf) {     
+            size_t saveReadIndex = buf->readableBytes();
             while(state_ != ParseState::FINISHED) {
                 if(state_ == ParseState::REQUEST_LINE) {
                     //     //1.找到请求行
@@ -62,6 +77,7 @@ namespace muduowebserv {
                     size_t pos1 = requestLine.find(" ");
                     size_t pos2 = requestLine.find(" ",pos1+1);
                     if(pos1==std::string ::npos||pos2==std::string ::npos) {
+                        buf->unretrieve(saveReadIndex - buf->readableBytes());
                         return false;  //请求行格式错误          
                     }
                     method_ = requestLine.substr(0,pos1);
@@ -78,7 +94,7 @@ namespace muduowebserv {
                     //跳过\r\n
                     buf->retrieve(2);
                     if(headLine.empty()) {
-                        state_ = ParseState::BODY;
+                        state_ = ParseState::FINISHED;
                     }else {
                         //         //解析头部内容
                         size_t colon=headLine.find(":");
@@ -91,7 +107,6 @@ namespace muduowebserv {
                 }else if(state_ == ParseState::BODY) {
                     break;
                 }
-                return true;
             }
             return state_ == ParseState::FINISHED;
         }

@@ -64,7 +64,7 @@ std::vector<std::vector<std::string>> SimpleDB::queryWithParams(
     std::vector<std::vector<std::string>> results;
     //‘§±‡“Î
     sqlite3_stmt * stmt = nullptr;
-    int ret = sqlite3_prepare16_v2(db_,sql.c_str(),-1,&stmt,nullptr);
+    int ret = sqlite3_prepare_v2(db_,sql.c_str(),-1,&stmt,nullptr);
     if(ret!=SQLITE_OK){
         LOG_ERROR<<"prepare error"<<sqlite3_errmsg(db_);
         return results;

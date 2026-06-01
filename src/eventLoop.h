@@ -55,6 +55,7 @@ namespace muduowebserv{
         //设置停止
         void quit() {
             quit_ = true;
+            wakeup();    //唤醒epoll,退出循环
         }
         bool isLooping() {
             return looping_;
